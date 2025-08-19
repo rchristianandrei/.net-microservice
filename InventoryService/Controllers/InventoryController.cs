@@ -1,8 +1,9 @@
 ﻿using Common;
-using Microsoft.AspNetCore.Http.Features;
+using InventoryService.Data;
+using InventoryService.DTOs;
+using InventoryService.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using MongoDB.Driver;
-using System.Threading.Tasks;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -15,58 +16,90 @@ namespace InventoryService.Controllers
         private readonly IMongoRepository<Inventory> itemRepository = itemRepository;
 
         // GET: api/<InventoryController>
-        [HttpGet]
+        [HttpGet("{userId}")]
         public async Task<IActionResult> Get(Guid userId)
         {
-            var items = await itemRepository.GetOne(Builders<Inventory>.Filter.Eq(u => u.Id, userId));
+            var inventory = await FindInventory(userId);
 
-            if (items == null) return NotFound();
+            if (inventory == null) return NotFound();
 
-            return Ok(items);
+            return Ok(inventory.Items.Select(i => i.ToItemDto()));
         }
-
-        // GET api/<InventoryController>/5
-        //[HttpGet("{id}")]
-        //public string Get(int id)
-        //{
-        //    return "value";
-        //}
 
         // POST api/<InventoryController>
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] Guid userId, IEnumerable<string> items)
+        public async Task<IActionResult> Post(Guid userId, [FromBody] AddItemDto addItemDto)
         {
-            await itemRepository.Create(new Inventory
+            var inventory = await FindInventory(userId);
+
+            if (inventory == null)
             {
-                Id = userId,
-                Items = items
-            });
+                inventory = new Inventory(userId);
+                await itemRepository.Create(inventory);
+            }
+
+            var item = FindItem(inventory, addItemDto.ItemId);
+
+            if (item == null)
+            {
+                inventory.Items.Add(new Item(addItemDto.ItemId,addItemDto.QuantityToAdd));
+            }
+            else
+            {
+                item.Quantity += addItemDto.QuantityToAdd;
+            }
+
+            await itemRepository.Update(inventory);
 
             return NoContent();
         }
 
         // PUT api/<InventoryController>/5
         [HttpPut("{userId}")]
-        public async Task<IActionResult> Put(Guid userId, [FromBody] IEnumerable<string> items)
+        public async Task<IActionResult> Put(Guid userId, [FromBody] UpdateItemDto updateItemDto)
         {
-            var inventory = await itemRepository.GetOne(Builders<Inventory>.Filter.Eq(u => u.Id, userId));
+            var inventory = await FindInventory(userId);
 
             if (inventory == null) return NotFound();
 
-            inventory.Items = items;
+            var item = FindItem(inventory, updateItemDto.ItemId);
+
+            if (item == null) return NotFound();
+
+            item.Quantity = updateItemDto.Quantity;
+
+            await itemRepository.Update(inventory);
 
             return NoContent();
         }
 
         // DELETE api/<InventoryController>/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid userId)
+        [HttpDelete("{userId}")]
+        public async Task<IActionResult> Delete(Guid userId, [FromBody] DeleteItemDto deleteItemDto)
         {
-            var items = await itemRepository.GetOne(Builders<Inventory>.Filter.Eq(u => u.Id, userId));
+            var inventory = await FindInventory(userId);
 
-            if (items == null) return NotFound();
+            if (inventory == null) return NotFound();
+
+            var item = FindItem(inventory, deleteItemDto.ItemId);
+
+            if(item == null) return NotFound();
+
+            inventory.Items.Remove(item);
+
+            await itemRepository.Update(inventory);
 
             return NoContent();
+        }
+
+        private async Task<Inventory?> FindInventory(Guid userId)
+        {
+            return await itemRepository.GetOne(Builders<Inventory>.Filter.Eq(u => u.UserId, userId)); ;
+        }
+
+        private Item? FindItem(Inventory inventory, Guid itemId)
+        {
+            return inventory.Items.FirstOrDefault(item => item.ItemId == itemId);
         }
     }
 }

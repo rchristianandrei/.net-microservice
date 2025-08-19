@@ -1,5 +1,5 @@
 using Common;
-using InventoryService;
+using InventoryService.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 

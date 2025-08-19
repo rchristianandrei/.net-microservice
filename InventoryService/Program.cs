@@ -1,15 +1,16 @@
 using Common;
-using ItemService.Data;
+using InventoryService;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
+
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-builder.Services.AddMongoDb<Item>(builder.Configuration);
+builder.Services.AddMongoDb<Inventory>(builder.Configuration);
 
 var app = builder.Build();
 

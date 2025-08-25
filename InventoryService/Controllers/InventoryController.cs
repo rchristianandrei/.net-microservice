@@ -94,10 +94,10 @@ namespace InventoryService.Controllers
 
         private async Task<Inventory?> FindInventory(Guid userId)
         {
-            return await itemRepository.GetOne(Builders<Inventory>.Filter.Eq(u => u.UserId, userId)); ;
+            return await itemRepository.GetOne(u => u.UserId == userId); ;
         }
 
-        private Item? FindItem(Inventory inventory, Guid itemId)
+        private static Item? FindItem(Inventory inventory, Guid itemId)
         {
             return inventory.Items.FirstOrDefault(item => item.ItemId == itemId);
         }

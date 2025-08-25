@@ -1,4 +1,5 @@
 ﻿using MongoDB.Driver;
+using System.Linq.Expressions;
 
 namespace Common;
 
@@ -11,7 +12,7 @@ public class MongoRepository<T>(IMongoDatabase database, string collectionName) 
         return await (await entities.FindAsync(_ => true)).ToListAsync();
     }
 
-    public async Task<IEnumerable<T>> GetAll(FilterDefinition<T> filter)
+    public async Task<IEnumerable<T>> GetAll(Expression<Func<T, bool>> filter)
     {
         return await (await entities.FindAsync(filter)).ToListAsync();
     }
@@ -21,7 +22,7 @@ public class MongoRepository<T>(IMongoDatabase database, string collectionName) 
         return await (await entities.FindAsync(T => T.Id == id)).FirstOrDefaultAsync();
     }
 
-    public async Task<T> GetOne(FilterDefinition<T> filter)
+    public async Task<T> GetOne(Expression<Func<T, bool>> filter)
     {
         return await (await entities.FindAsync(filter)).FirstOrDefaultAsync();
     }
